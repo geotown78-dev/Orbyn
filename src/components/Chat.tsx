@@ -18,19 +18,23 @@ export const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
 
+  const isDM = activeChannel.startsWith('dm_');
+  const dmTarget = isDM ? activeChannel.replace('dm_', '') : '';
+  const actualChannelId = isDM && user ? [user.name, dmTarget].sort().join('_') : activeChannel;
+
   useEffect(() => {
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('channel_id', activeChannel)
+        .eq('channel_id', actualChannelId)
         .order('created_at', { ascending: true });
       
       if (data && !error) {
         setMessages(data);
       }
     };
-
+    
     fetchMessages();
 
     // Subscribe to new messages
@@ -40,7 +44,7 @@ export const Chat = () => {
         event: 'INSERT', 
         schema: 'public', 
         table: 'messages',
-        filter: `channel_id=eq.${activeChannel}`
+        filter: `channel_id=eq.${actualChannelId}`
       }, payload => {
         setMessages(prev => [...prev, payload.new as Message]);
       })
@@ -49,7 +53,7 @@ export const Chat = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [activeChannel]);
+  }, [actualChannelId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +65,7 @@ export const Chat = () => {
       user_avatar: user.avatar,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       content: inputValue,
-      channel_id: activeChannel
+      channel_id: actualChannelId
     };
 
     // Optimistic update
@@ -77,9 +81,9 @@ export const Chat = () => {
       <div className="h-[60px] border-b border-[#20212B] flex items-center px-6 shrink-0 justify-between bg-[#13141C]/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-3">
           <Hash size={24} className="text-gray-500" />
-          <h2 className="text-[17px] font-extrabold text-white tracking-wide">{activeChannel}</h2>
+          <h2 className="text-[17px] font-extrabold text-white tracking-wide">{isDM ? dmTarget : activeChannel}</h2>
           <div className="h-5 w-[1px] bg-[#20212B] mx-2"></div>
-          <p className="text-sm text-gray-400 font-medium tracking-wide">General chat for everyone</p>
+          <p className="text-sm text-gray-400 font-medium tracking-wide">{isDM ? `Direct message with ${dmTarget}` : `General chat for everyone`}</p>
         </div>
       </div>
       
@@ -88,8 +92,8 @@ export const Chat = () => {
           <div className="w-20 h-20 bg-[#1E1F2A] rounded-full flex items-center justify-center mb-4">
              <Hash size={40} className="text-gray-500" />
           </div>
-          <h1 className="text-3xl font-black text-white mb-2">Welcome to #{activeChannel}!</h1>
-          <p className="text-gray-400 text-center max-w-md">This is the start of the #{activeChannel} channel. Say hi to everyone!</p>
+          <h1 className="text-3xl font-black text-white mb-2">{isDM ? `Chat with ${dmTarget}` : `Welcome to #${activeChannel}!`}</h1>
+          <p className="text-gray-400 text-center max-w-md">{isDM ? `This is the beginning of your direct message history with ${dmTarget}.` : `This is the start of the #${activeChannel} channel. Say hi to everyone!`}</p>
         </div>
         
         {messages.map((msg, index) => (
@@ -120,7 +124,7 @@ export const Chat = () => {
             type="text" 
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={`Message #${activeChannel}`} 
+            placeholder={isDM ? `Message @${dmTarget}` : `Message #${activeChannel}`} 
             className="flex-1 bg-transparent border-none outline-none text-gray-200 placeholder-gray-500 text-[15px]"
           />
           <div className="flex items-center gap-4 text-gray-500">
