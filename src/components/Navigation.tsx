@@ -1,9 +1,10 @@
 
-import { Compass, Plus, Hash, Volume2, Shield } from 'lucide-react';
+import { Compass, Plus, Hash, Volume2, Shield, Settings, UserPlus, LogOut, Trash2, Edit } from 'lucide-react';
+import { useState } from 'react';
 import { useApp } from '../AppContext';
 
 export const ServerSidebar = () => {
-  const { activeServer, setActiveServer } = useApp();
+  const { activeServer, setActiveServer, servers } = useApp();
 
   return (
     <div className="w-[72px] bg-[#0E0F15] flex flex-col items-center py-4 gap-3 shrink-0 border-r border-[#20212B]">
@@ -20,16 +21,18 @@ export const ServerSidebar = () => {
       
       <div className="w-8 h-[2px] bg-[#20212B] rounded-full my-1"></div>
 
-      {[
-        { id: 'gamehub', name: 'GameHub', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=100&h=100' },
-      ].map((server) => (
+      {servers.map((server) => (
         <div key={server.id} className="relative group flex items-center justify-center w-full">
           <div className={`absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300 ${activeServer === server.id ? 'h-10' : 'h-0 group-hover:h-5'}`}></div>
           <div 
             onClick={() => setActiveServer(server.id)}
-            className={`w-12 h-12 rounded-[24px] group-hover:rounded-[16px] overflow-hidden cursor-pointer transition-all duration-300 ${activeServer === server.id ? 'rounded-[16px] ring-2 ring-[#7038fa] ring-offset-2 ring-offset-[#0E0F15]' : ''}`}
+            className={`w-12 h-12 rounded-[24px] group-hover:rounded-[16px] bg-[#1A1B26] overflow-hidden cursor-pointer transition-all duration-300 flex items-center justify-center ${activeServer === server.id ? 'rounded-[16px] ring-2 ring-[#7038fa] ring-offset-2 ring-offset-[#0E0F15]' : ''}`}
           >
-            <img src={server.img} alt={server.name} className="w-full h-full object-cover" />
+            {server.img ? (
+              <img src={server.img} alt={server.name} className="w-full h-full object-cover" />
+            ) : (
+              <Shield size={24} className="text-white" />
+            )}
           </div>
         </div>
       ))}
@@ -45,17 +48,89 @@ export const ServerSidebar = () => {
 };
 
 export const Sidebar = () => {
-  const { activeChannel, setActiveChannel } = useApp();
+  const { activeChannel, setActiveChannel, activeServer, servers, setServers, setActiveServer: switchServer } = useApp();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const currentServer = servers.find(s => s.id === activeServer);
+  
+  if (!currentServer && activeServer !== '@me') {
+    return null;
+  }
+
+  const handleLeaveServer = () => {
+    const updatedServers = servers.filter(s => s.id !== activeServer);
+    setServers(updatedServers);
+    switchServer('@me');
+    setIsDropdownOpen(false);
+  };
 
   return (
     <div className="w-[260px] bg-[#13141C] flex flex-col shrink-0 border-r border-[#20212B]">
       {/* Server Header */}
-      <div className="h-[60px] border-b border-[#20212B] flex items-center px-4 justify-between cursor-pointer hover:bg-[#1A1B26] transition-colors">
-        <h1 className="font-extrabold text-white text-[17px] tracking-wide">GameHub</h1>
-        <Shield size={18} className="text-[#7038fa]" />
-      </div>
+      {activeServer !== '@me' && currentServer && (
+        <div className="relative">
+          <div 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className={`h-[60px] border-b border-[#20212B] flex items-center px-4 justify-between cursor-pointer transition-colors ${isDropdownOpen ? 'bg-[#1A1B26]' : 'hover:bg-[#1A1B26]'}`}
+          >
+            <h1 className="font-extrabold text-white text-[17px] tracking-wide">{currentServer.name}</h1>
+            {currentServer.isOwner && <Shield size={18} className="text-[#7038fa]" />}
+          </div>
+          
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <div className="absolute top-[65px] left-2 right-2 bg-[#111218] rounded-lg shadow-2xl border border-[#20212B] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+              {currentServer.isOwner ? (
+                <>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-[#7038fa] hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors group">
+                    <span>Invite People</span>
+                    <UserPlus size={16} />
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                    <span>Server Settings</span>
+                    <Settings size={16} />
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                    <span>Create Channel</span>
+                    <Plus size={16} />
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                    <span>Edit Server Profile</span>
+                    <Edit size={16} />
+                  </div>
+                  <div className="h-[1px] bg-[#20212B] my-1 mx-2"></div>
+                  <div 
+                    onClick={handleLeaveServer}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500 hover:text-white rounded cursor-pointer transition-colors"
+                  >
+                    <span>Delete Server</span>
+                    <Trash2 size={16} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-[#7038fa] hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                    <span>Invite Friends</span>
+                    <UserPlus size={16} />
+                  </div>
+                  <div className="h-[1px] bg-[#20212B] my-1 mx-2"></div>
+                  <div 
+                    onClick={handleLeaveServer}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500 hover:text-white rounded cursor-pointer transition-colors"
+                  >
+                    <span>Leave Server</span>
+                    <LogOut size={16} />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-6">
+      {/* When @me is selected, we could show Direct Messages list here, but currently it just shows empty state or GameHub channels. To avoid breaking things, we'll keep the channel list below for servers. */}
+      {activeServer !== '@me' && (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-6">
         {/* Info Channels */}
         <div>
           <div className="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer">
@@ -128,7 +203,8 @@ export const Sidebar = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 };
