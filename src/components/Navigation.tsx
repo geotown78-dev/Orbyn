@@ -113,7 +113,7 @@ const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
 };
 
 export const ServerSidebar = () => {
-  const { activeServer, setActiveServer, servers, setServers } = useApp();
+  const { activeServer, setActiveServer, servers, setServers, pendingRequestsCount } = useApp();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const handleCreateServer = (name: string) => {
@@ -141,9 +141,14 @@ export const ServerSidebar = () => {
         <div className={`absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300 ${activeServer === '@me' ? 'h-10' : 'h-0 group-hover:h-5'}`}></div>
         <div 
           onClick={() => setActiveServer('@me')}
-          className={`w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-[#7038fa] flex items-center justify-center cursor-pointer transition-all duration-300 shadow-[0_0_15px_rgba(112,56,250,0.5)] ${activeServer === '@me' ? 'rounded-[16px]' : ''}`}
+          className={`relative w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-[#7038fa] flex items-center justify-center cursor-pointer transition-all duration-300 shadow-[0_0_15px_rgba(112,56,250,0.5)] ${activeServer === '@me' ? 'rounded-[16px]' : ''}`}
         >
            <span className="font-bold text-white text-xl">O</span>
+           {pendingRequestsCount > 0 && (
+             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-[3px] border-[#0E0F15] flex items-center justify-center text-white text-[10px] font-bold">
+               {pendingRequestsCount}
+             </div>
+           )}
         </div>
       </div>
       
