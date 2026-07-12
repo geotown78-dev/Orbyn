@@ -26,6 +26,7 @@ type AppContextType = {
   user: User | null;
   servers: Server[];
   setServers: (servers: Server[]) => void;
+  pendingRequestsCount: number;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -33,29 +34,16 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
-  const [activeChannel, setActiveChannel] = useState(() => localStorage.getItem('activeChannel') || 'general');
-  const [activeServer, setActiveServer] = useState(() => localStorage.getItem('activeServer') || '@me');
+  const [activeChannel, setActiveChannel] = useState('general');
+  const [activeServer, setActiveServer] = useState('@me');
   const [user, setUser] = useState<User | null>(null);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   
-  const [servers, setServers] = useState<Server[]>(() => {
-    const saved = localStorage.getItem('servers');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return [];
-      }
-    }
-    return [];
-  });
+  const [servers, setServers] = useState<Server[]>([]);
   
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('activeChannel', activeChannel);
-    localStorage.setItem('activeServer', activeServer);
-    localStorage.setItem('servers', JSON.stringify(servers));
-    
     if (user && isDataLoaded) {
       supabase.from('user_settings').upsert({
         user_id: user.id,
@@ -68,6 +56,32 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       });
     }
   }, [activeChannel, activeServer, servers, user, isDataLoaded]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchPendingCount = async () => {
+      const { count, error } = await supabase
+        .from('friend_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('receiver_username', user.name)
+        .eq('status', 'pending');
+        
+      if (!error && count !== null) {
+        setPendingRequestsCount(count);
+      }
+    };
+
+    fetchPendingCount();
+
+    const channel = supabase.channel('global:friend_requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests', filter: `receiver_username=eq.${user.name}` }, () => {
+        fetchPendingCount();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   useEffect(() => {
     const fetchSettings = async (userId: string) => {
@@ -128,7 +142,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       activeChannel, setActiveChannel,
       activeServer, setActiveServer,
       user,
-      servers, setServers
+      servers, setServers,
+      pendingRequestsCount
     }}>
       {children}
     </AppContext.Provider>
