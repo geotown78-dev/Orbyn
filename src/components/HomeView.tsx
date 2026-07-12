@@ -1,5 +1,7 @@
 import { Users, Search, MessageSquare, Check, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useApp } from '../AppContext';
 
 export const HomeSidebar = () => {
   return (
@@ -32,39 +34,70 @@ export const HomeSidebar = () => {
 };
 
 export const HomeMain = () => {
+  const { user } = useApp();
   const [activeTab, setActiveTab] = useState<'online' | 'all' | 'pending' | 'add_friend'>('online');
   const [addFriendInput, setAddFriendInput] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Mock data for requests
-  const [sentRequests, setSentRequests] = useState([
-    { id: '1', username: 'Luka', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Luka' }
-  ]);
-  const [receivedRequests, setReceivedRequests] = useState([
-    { id: '2', username: 'Givi', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Givi' }
-  ]);
+  type FriendRequest = { id: string; sender_username: string; sender_avatar: string; receiver_username: string; status: string; };
+  const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
+  const [receivedRequests, setReceivedRequests] = useState<FriendRequest[]>([]);
 
-  const handleSendRequest = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchRequests = async () => {
+      const { data: sent } = await supabase.from('friend_requests').select('*').eq('sender_username', user.name).eq('status', 'pending');
+      const { data: received } = await supabase.from('friend_requests').select('*').eq('receiver_username', user.name).eq('status', 'pending');
+      if (sent) setSentRequests(sent);
+      if (received) setReceivedRequests(received);
+    };
+
+    fetchRequests();
+
+    const channel = supabase.channel('public:friend_requests')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, () => {
+        fetchRequests();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
+
+  const handleSendRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (addFriendInput.trim()) {
-      setSentRequests([...sentRequests, { id: Date.now().toString(), username: addFriendInput, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${addFriendInput}` }]);
+    if (addFriendInput.trim() && user) {
+      const newReq = {
+        id: Date.now().toString(),
+        sender_username: user.name,
+        sender_avatar: user.avatar,
+        receiver_username: addFriendInput.trim(),
+        status: 'pending'
+      };
+      
+      // Opt UI
+      setSentRequests(prev => [...prev, newReq]);
       setSuccessMessage(`Success! Your friend request to ${addFriendInput} was sent.`);
       setAddFriendInput('');
       setTimeout(() => setSuccessMessage(''), 3000);
+
+      await supabase.from('friend_requests').insert([newReq]);
     }
   };
 
-  const cancelRequest = (id: string) => {
-    setSentRequests(sentRequests.filter(req => req.id !== id));
+  const cancelRequest = async (id: string) => {
+    setSentRequests(prev => prev.filter(r => r.id !== id));
+    await supabase.from('friend_requests').delete().eq('id', id);
   };
 
-  const acceptRequest = (id: string) => {
-    setReceivedRequests(receivedRequests.filter(req => req.id !== id));
-    // Ideally add to friends list here
+  const acceptRequest = async (id: string) => {
+    setReceivedRequests(prev => prev.filter(r => r.id !== id));
+    await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', id);
   };
 
-  const declineRequest = (id: string) => {
-    setReceivedRequests(receivedRequests.filter(req => req.id !== id));
+  const declineRequest = async (id: string) => {
+    setReceivedRequests(prev => prev.filter(r => r.id !== id));
+    await supabase.from('friend_requests').delete().eq('id', id);
   };
 
   return (
@@ -159,9 +192,9 @@ export const HomeMain = () => {
                   {receivedRequests.map(req => (
                     <div key={req.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-[#1A1B26] border-t border-[#20212B] group">
                       <div className="flex items-center gap-3">
-                        <img src={req.avatar} alt={req.username} className="w-10 h-10 rounded-full bg-[#13141C]" />
+                        <img src={(req as any).sender_username === user?.name ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${(req as any).receiver_username}` : (req as any).sender_avatar} alt={(req as any).sender_username === user?.name ? (req as any).receiver_username : (req as any).sender_username} className="w-10 h-10 rounded-full bg-[#13141C]" />
                         <div>
-                          <div className="text-white font-medium">{req.username}</div>
+                          <div className="text-white font-medium">{(req as any).sender_username === user?.name ? (req as any).receiver_username : (req as any).sender_username}</div>
                           <div className="text-xs text-gray-400">Incoming Friend Request</div>
                         </div>
                       </div>
@@ -186,9 +219,9 @@ export const HomeMain = () => {
                   {sentRequests.map(req => (
                     <div key={req.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-[#1A1B26] border-t border-[#20212B] group">
                       <div className="flex items-center gap-3">
-                        <img src={req.avatar} alt={req.username} className="w-10 h-10 rounded-full bg-[#13141C]" />
+                        <img src={(req as any).sender_username === user?.name ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${(req as any).receiver_username}` : (req as any).sender_avatar} alt={(req as any).sender_username === user?.name ? (req as any).receiver_username : (req as any).sender_username} className="w-10 h-10 rounded-full bg-[#13141C]" />
                         <div>
-                          <div className="text-white font-medium">{req.username}</div>
+                          <div className="text-white font-medium">{(req as any).sender_username === user?.name ? (req as any).receiver_username : (req as any).sender_username}</div>
                           <div className="text-xs text-gray-400">Outgoing Friend Request</div>
                         </div>
                       </div>
