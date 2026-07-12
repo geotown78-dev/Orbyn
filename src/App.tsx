@@ -7,7 +7,7 @@ import { RightPanel } from './components/RightPanel';
 import { SettingsModal } from './components/SettingsModal';
 import { Auth } from './components/Auth';
 import { TopNav } from './components/TopNav';
-import { WifiOff } from 'lucide-react';
+import { WifiOff } from 'lucide-react';import { HomeSidebar, HomeMain, HomeRightPanel } from './components/HomeView';
 
 const ConnectionOverlay = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -39,7 +39,7 @@ const ConnectionOverlay = () => {
 };
 
 export const App = () => {
-  const { isAuthenticated } = useApp();
+  const { isAuthenticated, activeServer } = useApp();
 
   if (!isAuthenticated) {
     return (
@@ -56,15 +56,19 @@ export const App = () => {
       <TopNav />
       <div className="flex flex-1 overflow-hidden">
         <ServerSidebar />
-        <div className="flex-1 bg-[#13141C] flex items-center justify-center">
-           <div className="text-center">
-             <div className="w-24 h-24 bg-[#1A1B26] rounded-full mx-auto mb-6 flex items-center justify-center">
-               <span className="text-4xl text-gray-600">✨</span>
-             </div>
-             <h2 className="text-2xl font-black text-white mb-2">Welcome to Orbyn</h2>
-             <p className="text-gray-400">Join a server or create a new one to get started.</p>
-           </div>
-        </div>
+        {activeServer === '@me' ? (
+          <>
+            <HomeSidebar />
+            <HomeMain />
+            <HomeRightPanel />
+          </>
+        ) : (
+          <>
+            <Sidebar />
+            <Chat />
+            <RightPanel />
+          </>
+        )}
       </div>
       <SettingsModal />
     </div>
