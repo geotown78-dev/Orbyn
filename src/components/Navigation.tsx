@@ -136,6 +136,7 @@ export const ServerSidebar = () => {
 
     setServers([...servers, { ...newServer, isOwner: true }]);
     setActiveServer(newId);
+    setIsAddModalOpen(false);
   };
 
   const handleJoinServer = async (link: string) => {
@@ -143,6 +144,7 @@ export const ServerSidebar = () => {
     const serverId = link.split('/').pop() || link;
     if (servers.find(s => s.id === serverId)) {
        setActiveServer(serverId);
+       setIsAddModalOpen(false);
        return;
     }
     
@@ -161,6 +163,7 @@ export const ServerSidebar = () => {
       const newServer = { id: serverData.id, name: serverData.name, img: serverData.img, isOwner: false };
       setServers([...servers, newServer]);
       setActiveServer(serverId);
+      setIsAddModalOpen(false);
     } else {
       console.error('Server not found');
     }
@@ -196,7 +199,7 @@ export const ServerSidebar = () => {
             {server.img ? (
               <img src={server.img} alt={server.name} className="w-full h-full object-cover" />
             ) : (
-              <Shield size={24} className="text-white" />
+              <span className="text-white font-medium text-[15px]">{server.name.split(' ').map(n => n[0]).join('').substring(0, 3).toUpperCase()}</span>
             )}
           </div>
         </div>
