@@ -7,6 +7,13 @@ type User = {
   avatar: string;
 };
 
+export type Friend = {
+  id: string;
+  username: string;
+  avatar: string;
+  status: 'online' | 'offline';
+};
+
 type Server = {
   id: string;
   name: string;
@@ -27,6 +34,7 @@ type AppContextType = {
   servers: Server[];
   setServers: (servers: Server[]) => void;
   pendingRequestsCount: number;
+  friends: Friend[];
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,6 +46,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [activeServer, setActiveServer] = useState('@me');
   const [user, setUser] = useState<User | null>(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [friends, setFriends] = useState<Friend[]>([]);
   
   const [servers, setServers] = useState<Server[]>([]);
   
@@ -60,7 +69,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user) return;
 
-    const fetchPendingCount = async () => {
+    const fetchPendingCountAndFriends = async () => {
       const { count, error } = await supabase
         .from('friend_requests')
         .select('*', { count: 'exact', head: true })
@@ -70,13 +79,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (!error && count !== null) {
         setPendingRequestsCount(count);
       }
+
+      const { data: sentAccepted } = await supabase.from('friend_requests').select('*').eq('sender_username', user.name).eq('status', 'accepted');
+      const { data: receivedAccepted } = await supabase.from('friend_requests').select('*').eq('receiver_username', user.name).eq('status', 'accepted');
+      
+      const combined = [];
+      if (sentAccepted) {
+        combined.push(...sentAccepted.map((req: any) => ({
+          id: req.id,
+          username: req.receiver_username,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${req.receiver_username}`,
+          status: 'online' as const
+        })));
+      }
+      if (receivedAccepted) {
+        combined.push(...receivedAccepted.map((req: any) => ({
+          id: req.id,
+          username: req.sender_username,
+          avatar: req.sender_avatar,
+          status: 'online' as const
+        })));
+      }
+      setFriends(combined);
     };
 
-    fetchPendingCount();
+    fetchPendingCountAndFriends();
 
     const channel = supabase.channel('global:friend_requests')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests', filter: `receiver_username=eq.${user.name}` }, () => {
-        fetchPendingCount();
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'friend_requests' }, () => {
+        fetchPendingCountAndFriends();
       })
       .subscribe();
 
@@ -143,7 +174,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       activeServer, setActiveServer,
       user,
       servers, setServers,
-      pendingRequestsCount
+      pendingRequestsCount,
+      friends
     }}>
       {children}
     </AppContext.Provider>
