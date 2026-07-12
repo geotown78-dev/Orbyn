@@ -1,6 +1,7 @@
 import { Compass, Plus, Hash, Volume2, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../AppContext';
+import { supabase } from '../lib/supabase';
 
 const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
   const [view, setView] = useState<'options' | 'create' | 'join'>('options');
@@ -113,25 +114,56 @@ const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
 };
 
 export const ServerSidebar = () => {
-  const { activeServer, setActiveServer, servers, setServers, pendingRequestsCount } = useApp();
+  const { user, activeServer, setActiveServer, servers, setServers, pendingRequestsCount } = useApp();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const handleCreateServer = (name: string) => {
+  const handleCreateServer = async (name: string) => {
+    if (!user) return;
     const newId = 'server_' + Date.now();
-    const newServer = { id: newId, name, img: null, isOwner: true };
-    setServers([...servers, newServer]);
+    const newServer = { id: newId, name, img: null, owner_id: user.id };
+    
+    // Save to servers table
+    const { error: serverError } = await supabase.from('servers').insert([newServer]);
+    if (serverError) {
+      console.error('Error creating server:', serverError);
+      return;
+    }
+    
+    // Add to server_members
+    await supabase.from('server_members').insert([
+      { server_id: newId, user_id: user.id, role: 'owner' }
+    ]);
+
+    setServers([...servers, { ...newServer, isOwner: true }]);
     setActiveServer(newId);
   };
 
-  const handleJoinServer = (link: string) => {
+  const handleJoinServer = async (link: string) => {
+    if (!user) return;
     const serverId = link.split('/').pop() || link;
     if (servers.find(s => s.id === serverId)) {
        setActiveServer(serverId);
        return;
     }
-    const newServer = { id: serverId, name: 'Joined Server', img: null, isOwner: false };
-    setServers([...servers, newServer]);
-    setActiveServer(serverId);
+    
+    // Check if server exists
+    const { data: serverData, error } = await supabase
+      .from('servers')
+      .select('*')
+      .eq('id', serverId)
+      .single();
+      
+    if (serverData && !error) {
+      // Add member
+      await supabase.from('server_members').upsert([
+        { server_id: serverId, user_id: user.id, role: 'member' }
+      ]);
+      const newServer = { id: serverData.id, name: serverData.name, img: serverData.img, isOwner: false };
+      setServers([...servers, newServer]);
+      setActiveServer(serverId);
+    } else {
+      console.error('Server not found');
+    }
   };
 
   return (
