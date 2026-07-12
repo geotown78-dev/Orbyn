@@ -1,10 +1,138 @@
-
-import { Compass, Plus, Hash, Volume2, Shield, Settings, UserPlus, LogOut, Trash2, Edit } from 'lucide-react';
+import { Compass, Plus, Hash, Volume2, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../AppContext';
 
+const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
+  const [view, setView] = useState<'options' | 'create' | 'join'>('options');
+  const [serverName, setServerName] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
+
+  if (!isOpen) return null;
+
+  const handleCreate = () => {
+    if (serverName.trim()) {
+      onCreate(serverName.trim());
+      setServerName('');
+      setView('options');
+      onClose();
+    }
+  };
+
+  const handleJoin = () => {
+    if (inviteLink.trim()) {
+      onJoin(inviteLink.trim());
+      setInviteLink('');
+      setView('options');
+      onClose();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4">
+      <div className="bg-[#111218] rounded-xl w-full max-w-md border border-[#20212B] shadow-2xl relative flex flex-col max-h-full overflow-hidden animate-in zoom-in-95 duration-200">
+        <button onClick={() => { onClose(); setView('options'); }} className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors">
+          <X size={24} />
+        </button>
+
+        {view === 'options' && (
+          <div className="p-8 text-center">
+            <h2 className="text-2xl font-bold text-white mb-2">Create a server</h2>
+            <p className="text-gray-400 mb-8">Your server is where you and your friends hang out. Make yours and start talking.</p>
+            
+            <button onClick={() => setView('create')} className="w-full flex items-center gap-3 p-4 bg-[#1A1B26] hover:bg-[#20212B] border border-[#20212B] rounded-lg mb-4 transition-colors group">
+              <div className="w-12 h-12 rounded-full bg-[#7038fa] flex items-center justify-center text-white shrink-0">
+                <Plus size={24} />
+              </div>
+              <div className="flex-1 text-left">
+                <div className="text-white font-bold text-[17px] group-hover:text-[#7038fa] transition-colors">Create My Own</div>
+              </div>
+              <div className="text-gray-500">▶</div>
+            </button>
+
+            <div className="bg-[#1A1B26] p-4 rounded-lg">
+              <h3 className="text-white font-bold mb-2">Have an invite already?</h3>
+              <button onClick={() => setView('join')} className="w-full bg-[#4e5058] hover:bg-[#5c5e66] text-white font-medium py-2 rounded transition-colors">
+                Join a Server
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === 'create' && (
+          <div className="p-8">
+            <h2 className="text-2xl font-bold text-white mb-2 text-center">Customize your server</h2>
+            <p className="text-gray-400 mb-8 text-center text-sm">Give your new server a personality with a name and an icon. You can always change it later.</p>
+            
+            <div className="mb-6">
+              <label className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 block">Server Name</label>
+              <input 
+                type="text" 
+                value={serverName}
+                onChange={(e) => setServerName(e.target.value)}
+                className="w-full bg-[#1e1f22] text-white p-3 rounded border border-transparent focus:border-[#7038fa] outline-none transition-colors"
+                placeholder="My Awesome Server"
+              />
+            </div>
+            
+            <div className="flex justify-between items-center bg-[#1A1B26] -mx-8 -mb-8 p-4 mt-8">
+              <button onClick={() => setView('options')} className="text-white text-sm hover:underline">Back</button>
+              <button onClick={handleCreate} disabled={!serverName.trim()} className="bg-[#7038fa] hover:bg-[#5b2bd1] disabled:opacity-50 text-white px-6 py-2 rounded font-medium transition-colors">
+                Create
+              </button>
+            </div>
+          </div>
+        )}
+
+        {view === 'join' && (
+          <div className="p-8">
+            <h2 className="text-2xl font-bold text-white mb-2 text-center">Join a Server</h2>
+            <p className="text-gray-400 mb-8 text-center text-sm">Enter an invite below to join an existing server.</p>
+            
+            <div className="mb-6">
+              <label className="text-xs font-bold text-gray-300 uppercase tracking-wide mb-2 block">Invite Link *</label>
+              <input 
+                type="text" 
+                value={inviteLink}
+                onChange={(e) => setInviteLink(e.target.value)}
+                className="w-full bg-[#1e1f22] text-white p-3 rounded border border-transparent focus:border-[#7038fa] outline-none transition-colors"
+                placeholder="https://orbyn.gg/..."
+              />
+            </div>
+            
+            <div className="flex justify-between items-center bg-[#1A1B26] -mx-8 -mb-8 p-4 mt-8">
+              <button onClick={() => setView('options')} className="text-white text-sm hover:underline">Back</button>
+              <button onClick={handleJoin} disabled={!inviteLink.trim()} className="bg-[#7038fa] hover:bg-[#5b2bd1] disabled:opacity-50 text-white px-6 py-2 rounded font-medium transition-colors">
+                Join Server
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export const ServerSidebar = () => {
-  const { activeServer, setActiveServer, servers } = useApp();
+  const { activeServer, setActiveServer, servers, setServers } = useApp();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const handleCreateServer = (name: string) => {
+    const newId = 'server_' + Date.now();
+    const newServer = { id: newId, name, img: null, isOwner: true };
+    setServers([...servers, newServer]);
+    setActiveServer(newId);
+  };
+
+  const handleJoinServer = (link: string) => {
+    const serverId = link.split('/').pop() || link;
+    if (servers.find(s => s.id === serverId)) {
+       setActiveServer(serverId);
+       return;
+    }
+    const newServer = { id: serverId, name: 'Joined Server', img: null, isOwner: false };
+    setServers([...servers, newServer]);
+    setActiveServer(serverId);
+  };
 
   return (
     <div className="w-[72px] bg-[#0E0F15] flex flex-col items-center py-4 gap-3 shrink-0 border-r border-[#20212B]">
@@ -37,37 +165,37 @@ export const ServerSidebar = () => {
         </div>
       ))}
 
-      <div className="w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-[#1A1B26] hover:bg-[#7038fa] flex items-center justify-center cursor-pointer transition-all duration-300 group text-[#22c55e] hover:text-white mt-2">
+      <div onClick={() => setIsAddModalOpen(true)} className="w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-[#1A1B26] hover:bg-[#7038fa] flex items-center justify-center cursor-pointer transition-all duration-300 group text-[#22c55e] hover:text-white mt-2">
         <Plus size={24} className="group-hover:rotate-90 transition-transform duration-300" />
       </div>
+
       <div className="w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-[#1A1B26] hover:bg-[#7038fa] flex items-center justify-center cursor-pointer transition-all duration-300 group text-[#22c55e] hover:text-white">
         <Compass size={24} />
       </div>
+
+      <AddServerModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onCreate={handleCreateServer}
+        onJoin={handleJoinServer}
+      />
     </div>
   );
 };
 
 export const Sidebar = () => {
-  const { activeChannel, setActiveChannel, activeServer, servers, setServers, setActiveServer: switchServer } = useApp();
+  const { activeServer, activeChannel, setActiveChannel, servers, setActiveServer } = useApp();
+  const currentServer = servers.find(s => s.id === activeServer);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const currentServer = servers.find(s => s.id === activeServer);
-  
-  if (!currentServer && activeServer !== '@me') {
-    return null;
-  }
-
   const handleLeaveServer = () => {
-    const updatedServers = servers.filter(s => s.id !== activeServer);
-    setServers(updatedServers);
-    switchServer('@me');
-    setIsDropdownOpen(false);
+    setActiveServer('@me');
   };
 
   return (
-    <div className="w-[260px] bg-[#13141C] flex flex-col shrink-0 border-r border-[#20212B]">
+    <div className="w-[240px] bg-[#111218] flex flex-col shrink-0 border-r border-[#20212B]">
       {/* Server Header */}
-      {activeServer !== '@me' && currentServer && (
+      {currentServer && (
         <div className="relative">
           <div 
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -184,6 +312,7 @@ export const Sidebar = () => {
                 <span className="font-medium text-[15px]">Lobby</span>
               </div>
             </div>
+            
             <div className="flex flex-col rounded-lg bg-[#1A1B26] mt-1 p-1 pb-2">
               <div className="flex items-center justify-between px-2 py-1.5 rounded text-white cursor-pointer transition-colors">
                 <div className="flex items-center gap-2">
@@ -203,6 +332,7 @@ export const Sidebar = () => {
             </div>
           </div>
         </div>
+
         </div>
       )}
     </div>
