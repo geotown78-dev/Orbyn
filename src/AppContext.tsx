@@ -30,16 +30,11 @@ type AppContextType = {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const defaultServers = [
-  { id: 'gamehub', name: 'GameHub', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=100&h=100', isOwner: false },
-  { id: 'orbyn', name: 'Orbyn Official', img: null, isOwner: true }
-];
-
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [activeChannel, setActiveChannel] = useState(() => localStorage.getItem('activeChannel') || 'general');
-  const [activeServer, setActiveServer] = useState(() => localStorage.getItem('activeServer') || 'gamehub');
+  const [activeServer, setActiveServer] = useState(() => localStorage.getItem('activeServer') || '@me');
   const [user, setUser] = useState<User | null>(null);
   
   const [servers, setServers] = useState<Server[]>(() => {
@@ -48,10 +43,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         return JSON.parse(saved);
       } catch (e) {
-        return defaultServers;
+        return [];
       }
     }
-    return defaultServers;
+    return [];
   });
   
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -116,8 +111,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       } else {
         setIsAuthenticated(false);
         setUser(null);
-        setServers(defaultServers);
-        setActiveServer('gamehub');
+        setServers([]);
+        setActiveServer('@me');
         setActiveChannel('general');
         setIsDataLoaded(true);
       }
