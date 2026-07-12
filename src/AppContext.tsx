@@ -8,6 +8,13 @@ type User = {
   avatar: string;
 };
 
+type Server = {
+  id: string;
+  name: string;
+  img: string | null;
+  isOwner?: boolean;
+};
+
 type AppContextType = {
   isAuthenticated: boolean;
   setIsAuthenticated: (val: boolean) => void;
@@ -18,6 +25,8 @@ type AppContextType = {
   activeServer: string;
   setActiveServer: (val: string) => void;
   user: User | null;
+  servers: Server[];
+  setServers: (servers: Server[]) => void;
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -26,8 +35,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [activeChannel, setActiveChannel] = useState('general');
-  const [activeServer, setActiveServer] = useState('@me');
+  const [activeServer, setActiveServer] = useState('gamehub');
   const [user, setUser] = useState<User | null>(null);
+  const [servers, setServers] = useState<Server[]>([
+    { id: 'gamehub', name: 'GameHub', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=100&h=100', isOwner: false },
+    { id: 'orbyn', name: 'Orbyn Official', img: null, isOwner: true }
+  ]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -64,7 +77,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isSettingsOpen, setSettingsOpen,
       activeChannel, setActiveChannel,
       activeServer, setActiveServer,
-      user
+      user,
+      servers, setServers
     }}>
       {children}
     </AppContext.Provider>
