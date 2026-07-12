@@ -46,7 +46,12 @@ export const Chat = () => {
         table: 'messages',
         filter: `channel_id=eq.${actualChannelId}`
       }, payload => {
-        setMessages(prev => [...prev, payload.new as Message]);
+        setMessages(prev => {
+          if (prev.some(msg => msg.id === payload.new.id)) {
+            return prev;
+          }
+          return [...prev, payload.new as Message];
+        });
       })
       .subscribe();
 
