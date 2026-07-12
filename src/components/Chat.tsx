@@ -1,7 +1,6 @@
 import { useState } from "react";
-
 import { Hash, Plus, Gift, Smile, AtSign } from 'lucide-react';
-import { currentUser } from '../AppContext';
+import { useApp } from '../AppContext';
 
 type Message = {
   id: string;
@@ -33,16 +32,17 @@ const initialMessages: Message[] = [
 ];
 
 export const Chat = () => {
+  const { user } = useApp();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState('');
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || !user) return;
 
     const newMessage: Message = {
       id: Date.now().toString(),
-      user: currentUser,
+      user: { name: user.name, avatar: user.avatar },
       time: 'Just now',
       content: inputValue
     };
@@ -50,6 +50,7 @@ export const Chat = () => {
     setMessages([...messages, newMessage]);
     setInputValue('');
   };
+
 
   return (
     <div className="flex-1 bg-[#13141C] flex flex-col min-w-0 relative">
