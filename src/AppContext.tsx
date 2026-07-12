@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "./lib/supabase";
-import { User as SupabaseUser } from "@supabase/supabase-js";
+
 
 type User = {
   id: string;
@@ -15,6 +15,8 @@ type AppContextType = {
   setSettingsOpen: (val: boolean) => void;
   activeChannel: string;
   setActiveChannel: (val: string) => void;
+  activeServer: string;
+  setActiveServer: (val: string) => void;
   user: User | null;
 };
 
@@ -24,6 +26,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [activeChannel, setActiveChannel] = useState('general');
+  const [activeServer, setActiveServer] = useState('@me');
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -60,6 +63,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated, setIsAuthenticated,
       isSettingsOpen, setSettingsOpen,
       activeChannel, setActiveChannel,
+      activeServer, setActiveServer,
       user
     }}>
       {children}
