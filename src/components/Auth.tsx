@@ -1,16 +1,47 @@
 import { useState } from "react";
-
 import { motion } from 'motion/react';
-import { Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2 } from 'lucide-react';
 import { useApp } from '../AppContext';
+import { supabase } from '../lib/supabase';
 
 export const Auth = () => {
   const { setIsAuthenticated } = useApp();
   const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsAuthenticated(true);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              username
+            }
+          }
+        });
+        if (error) throw error;
+      }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred during authentication');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -32,6 +63,12 @@ export const Auth = () => {
               {isLogin ? "Welcome back! Please login to your account." : "Create an account to join the community."}
             </p>
           </div>
+          
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/50 rounded-xl text-red-500 text-sm text-center">
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
@@ -42,6 +79,8 @@ export const Auth = () => {
                   <input 
                     type="text" 
                     required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     className="w-full bg-[#181922] border border-[#20212B] rounded-xl py-2.5 pl-11 pr-4 text-white focus:outline-none focus:border-[#7038fa]/50 transition-colors"
                     placeholder="Enter your username"
                   />
@@ -56,6 +95,8 @@ export const Auth = () => {
                 <input 
                   type="email" 
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-[#181922] border border-[#20212B] rounded-xl py-2.5 pl-11 pr-4 text-white focus:outline-none focus:border-[#7038fa]/50 transition-colors"
                   placeholder="Enter your email"
                 />
@@ -69,6 +110,8 @@ export const Auth = () => {
                 <input 
                   type="password" 
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-[#181922] border border-[#20212B] rounded-xl py-2.5 pl-11 pr-4 text-white focus:outline-none focus:border-[#7038fa]/50 transition-colors"
                   placeholder="Enter your password"
                 />
@@ -83,16 +126,26 @@ export const Auth = () => {
 
             <button 
               type="submit"
-              className="w-full bg-[#7038fa] hover:bg-[#5b2bd4] text-white rounded-xl py-3 font-bold transition-all shadow-[0_0_20px_rgba(112,56,250,0.3)] hover:shadow-[0_0_30px_rgba(112,56,250,0.5)] flex items-center justify-center gap-2 mt-6"
+              disabled={isLoading}
+              className="w-full bg-[#7038fa] hover:bg-[#5b2bd4] disabled:opacity-50 disabled:hover:bg-[#7038fa] text-white rounded-xl py-3 font-bold transition-all shadow-[0_0_20px_rgba(112,56,250,0.3)] hover:shadow-[0_0_30px_rgba(112,56,250,0.5)] flex items-center justify-center gap-2 mt-6"
             >
-              {isLogin ? "Login" : "Sign Up"} <ArrowRight size={18} />
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <>
+                  {isLogin ? "Login" : "Sign Up"} <ArrowRight size={18} />
+                </>
+              )}
             </button>
           </form>
 
           <div className="mt-6 text-center text-sm text-gray-400">
             {isLogin ? "Don't have an account? " : "Already have an account? "}
             <button 
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError(null);
+              }}
               className="text-[#7038fa] font-bold hover:underline"
             >
               {isLogin ? "Sign Up" : "Login"}
