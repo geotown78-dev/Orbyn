@@ -3,8 +3,37 @@ import { Compass, Plus, Hash, Volume2, Shield } from 'lucide-react';
 import { useApp } from '../AppContext';
 
 export const ServerSidebar = () => {
+  const { activeServer, setActiveServer } = useApp();
+
   return (
     <div className="w-[72px] bg-[#0E0F15] flex flex-col items-center py-4 gap-3 shrink-0 border-r border-[#20212B]">
+      {/* Home / Direct Messages */}
+      <div className="relative group flex items-center justify-center w-full">
+        <div className={`absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300 ${activeServer === '@me' ? 'h-10' : 'h-0 group-hover:h-5'}`}></div>
+        <div 
+          onClick={() => setActiveServer('@me')}
+          className={`w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-[#7038fa] flex items-center justify-center cursor-pointer transition-all duration-300 shadow-[0_0_15px_rgba(112,56,250,0.5)] ${activeServer === '@me' ? 'rounded-[16px]' : ''}`}
+        >
+           <span className="font-bold text-white text-xl">O</span>
+        </div>
+      </div>
+      
+      <div className="w-8 h-[2px] bg-[#20212B] rounded-full my-1"></div>
+
+      {[
+        { id: 'gamehub', name: 'GameHub', img: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=100&h=100' },
+      ].map((server) => (
+        <div key={server.id} className="relative group flex items-center justify-center w-full">
+          <div className={`absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300 ${activeServer === server.id ? 'h-10' : 'h-0 group-hover:h-5'}`}></div>
+          <div 
+            onClick={() => setActiveServer(server.id)}
+            className={`w-12 h-12 rounded-[24px] group-hover:rounded-[16px] overflow-hidden cursor-pointer transition-all duration-300 ${activeServer === server.id ? 'rounded-[16px] ring-2 ring-[#7038fa] ring-offset-2 ring-offset-[#0E0F15]' : ''}`}
+          >
+            <img src={server.img} alt={server.name} className="w-full h-full object-cover" />
+          </div>
+        </div>
+      ))}
+
       <div className="w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-[#1A1B26] hover:bg-[#7038fa] flex items-center justify-center cursor-pointer transition-all duration-300 group text-[#22c55e] hover:text-white mt-2">
         <Plus size={24} className="group-hover:rotate-90 transition-transform duration-300" />
       </div>
