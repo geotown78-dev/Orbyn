@@ -123,16 +123,32 @@ export const ServerSidebar = () => {
     const newServer = { id: newId, name, img: null };
     
     // Save to servers table
-    const { error: serverError } = await supabase.from('servers').insert([{ ...newServer, owner_id: user.id }]);
+    const { error: serverError } = await supabase
+      .from('servers')
+      .insert([{ ...newServer, owner_id: user.id }])
+      .select()
+      .single();
+      
     if (serverError) {
       console.error('Error creating server:', serverError);
+      alert('Error creating server: ' + serverError.message);
       return;
     }
     
     // Add to server_members
-    await supabase.from('server_members').insert([
-      { server_id: newId, user_id: user.id, role: 'owner' }
-    ]);
+    const { error: memberError } = await supabase
+      .from('server_members')
+      .insert([
+        { server_id: newId, user_id: user.id, role: 'owner' }
+      ])
+      .select()
+      .single();
+
+    if (memberError) {
+      console.error('Error adding member:', memberError);
+      alert('Error adding member: ' + memberError.message);
+      return;
+    }
 
     setServers([...servers, { ...newServer, isOwner: true }]);
     setActiveServer(newId);
