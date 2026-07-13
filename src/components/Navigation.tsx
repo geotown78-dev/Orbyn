@@ -341,7 +341,13 @@ export const Sidebar = () => {
                     <span>Create Channel</span>
                     <Plus size={16} />
                   </div>
-                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                  <div 
+                    onClick={() => {
+                      setIsSettingsOpen(true);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors"
+                  >
                     <span>Edit Server Profile</span>
                     <Edit size={16} />
                   </div>
