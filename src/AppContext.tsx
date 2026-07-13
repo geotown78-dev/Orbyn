@@ -56,6 +56,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (user && isDataLoaded) {
       supabase.from('user_settings').upsert({
         user_id: user.id,
+        servers: servers,
         active_server: activeServer,
         active_channel: activeChannel,
         updated_at: new Date().toISOString()
@@ -122,25 +123,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         .single();
         
       if (data && !error) {
+        setServers(data.servers || []);
         setActiveServer(data.active_server);
         setActiveChannel(data.active_channel);
       }
-      
-      const { data: memberData } = await supabase
-        .from('server_members')
-        .select('role, servers(*)')
-        .eq('user_id', userId);
-        
-      if (memberData) {
-        const dbServers = memberData.map((m: any) => ({
-          id: m.servers.id,
-          name: m.servers.name,
-          img: m.servers.img,
-          isOwner: m.role === 'owner'
-        }));
-        setServers(dbServers);
-      }
-
       setIsDataLoaded(true);
     };
 
