@@ -1,6 +1,7 @@
-import { Compass, Plus, Hash, Volume2, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X } from 'lucide-react';
+import { Compass, Plus, Hash, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../AppContext';
+import { supabase } from '../lib/supabase';
 
 const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
   const [view, setView] = useState<'options' | 'create' | 'join'>('options');
@@ -119,9 +120,21 @@ export const ServerSidebar = () => {
   const handleCreateServer = async (name: string) => {
     if (!user) return;
     const newId = 'server_' + Date.now();
-    const newServer = { id: newId, name, img: null, isOwner: true };
+    const newServer = { id: newId, name, img: null };
     
-    setServers([...servers, newServer]);
+    // Save to servers table
+    const { error: serverError } = await supabase.from('servers').insert([{ ...newServer, owner_id: user.id }]);
+    if (serverError) {
+      console.error('Error creating server:', serverError);
+      return;
+    }
+    
+    // Add to server_members
+    await supabase.from('server_members').insert([
+      { server_id: newId, user_id: user.id, role: 'owner' }
+    ]);
+
+    setServers([...servers, { ...newServer, isOwner: true }]);
     setActiveServer(newId);
     setIsAddModalOpen(false);
   };
@@ -135,10 +148,25 @@ export const ServerSidebar = () => {
        return;
     }
     
-    const newServer = { id: serverId, name: 'Joined Server', img: null, isOwner: false };
-    setServers([...servers, newServer]);
-    setActiveServer(serverId);
-    setIsAddModalOpen(false);
+    // Check if server exists
+    const { data: serverData, error } = await supabase
+      .from('servers')
+      .select('*')
+      .eq('id', serverId)
+      .single();
+      
+    if (serverData && !error) {
+      // Add member
+      await supabase.from('server_members').upsert([
+        { server_id: serverId, user_id: user.id, role: 'member' }
+      ]);
+      const newServer = { id: serverData.id, name: serverData.name, img: serverData.img, isOwner: false };
+      setServers([...servers, newServer]);
+      setActiveServer(serverId);
+      setIsAddModalOpen(false);
+    } else {
+      console.error('Server not found');
+    }
   };
 
   return (
@@ -311,39 +339,7 @@ export const Sidebar = () => {
           </div>
         </div>
 
-        {/* Voice Channels */}
-        <div>
-          <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer group">
-             <div className="flex items-center gap-1"><span className="w-3">▼</span> VOICE CHANNELS</div>
-             <Plus size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-          <div className="space-y-0.5">
-            <div className="flex items-center justify-between px-2 py-1.5 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26] cursor-pointer transition-colors group">
-              <div className="flex items-center gap-2">
-                <Volume2 size={18} className="text-gray-500 group-hover:text-gray-400" />
-                <span className="font-medium text-[15px]">Lobby</span>
-              </div>
-            </div>
-            
-            <div className="flex flex-col rounded-lg bg-[#1A1B26] mt-1 p-1 pb-2">
-              <div className="flex items-center justify-between px-2 py-1.5 rounded text-white cursor-pointer transition-colors">
-                <div className="flex items-center gap-2">
-                  <Volume2 size={18} className="text-gray-300" />
-                  <span className="font-medium text-[15px]">Gaming Room 1</span>
-                </div>
-              </div>
-              <div className="pl-8 pr-2 pt-1 flex items-center justify-between group cursor-pointer">
-                <div className="flex items-center gap-2">
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Nika" className="w-6 h-6 rounded-full bg-[#0E0F15]" alt="User" />
-                  <span className="text-sm font-medium text-gray-300 group-hover:text-white transition-colors">Nika</span>
-                </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                   <div className="w-3 h-3 rounded-full bg-red-500 border-2 border-[#1A1B26]"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         </div>
       )}
