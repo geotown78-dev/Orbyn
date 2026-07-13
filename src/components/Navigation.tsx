@@ -1,7 +1,6 @@
 import { Compass, Plus, Hash, Volume2, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X } from 'lucide-react';
 import { useState } from 'react';
 import { useApp } from '../AppContext';
-import { supabase } from '../lib/supabase';
 
 const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
   const [view, setView] = useState<'options' | 'create' | 'join'>('options');
@@ -120,21 +119,9 @@ export const ServerSidebar = () => {
   const handleCreateServer = async (name: string) => {
     if (!user) return;
     const newId = 'server_' + Date.now();
-    const newServer = { id: newId, name, img: null, owner_id: user.id };
+    const newServer = { id: newId, name, img: null, isOwner: true };
     
-    // Save to servers table
-    const { error: serverError } = await supabase.from('servers').insert([newServer]);
-    if (serverError) {
-      console.error('Error creating server:', serverError);
-      return;
-    }
-    
-    // Add to server_members
-    await supabase.from('server_members').insert([
-      { server_id: newId, user_id: user.id, role: 'owner' }
-    ]);
-
-    setServers([...servers, { ...newServer, isOwner: true }]);
+    setServers([...servers, newServer]);
     setActiveServer(newId);
     setIsAddModalOpen(false);
   };
@@ -148,25 +135,10 @@ export const ServerSidebar = () => {
        return;
     }
     
-    // Check if server exists
-    const { data: serverData, error } = await supabase
-      .from('servers')
-      .select('*')
-      .eq('id', serverId)
-      .single();
-      
-    if (serverData && !error) {
-      // Add member
-      await supabase.from('server_members').upsert([
-        { server_id: serverId, user_id: user.id, role: 'member' }
-      ]);
-      const newServer = { id: serverData.id, name: serverData.name, img: serverData.img, isOwner: false };
-      setServers([...servers, newServer]);
-      setActiveServer(serverId);
-      setIsAddModalOpen(false);
-    } else {
-      console.error('Server not found');
-    }
+    const newServer = { id: serverId, name: 'Joined Server', img: null, isOwner: false };
+    setServers([...servers, newServer]);
+    setActiveServer(serverId);
+    setIsAddModalOpen(false);
   };
 
   return (
@@ -199,7 +171,7 @@ export const ServerSidebar = () => {
             {server.img ? (
               <img src={server.img} alt={server.name} className="w-full h-full object-cover" />
             ) : (
-              <span className="text-white font-medium text-[15px]">{server.name.split(' ').map(n => n[0]).join('').substring(0, 3).toUpperCase()}</span>
+              <span className="text-white font-medium text-[15px]">{server.name ? server.name.split(' ').map(n => n[0]).join('').substring(0, 3).toUpperCase() : '?'}</span>
             )}
           </div>
         </div>
