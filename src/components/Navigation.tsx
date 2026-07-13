@@ -115,7 +115,7 @@ const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
 };
 
 export const ServerSidebar = () => {
-  const { user, activeServer, setActiveServer, servers, setServers, pendingRequestsCount } = useApp();
+  const { user, activeServer, setActiveServer, servers, setServers, pendingRequestsCount, setActiveChannel } = useApp();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const handleCreateServer = async (name: string) => {
@@ -153,6 +153,7 @@ export const ServerSidebar = () => {
 
     setServers([...servers, { ...newServer, isOwner: true }]);
     setActiveServer(newId);
+    setActiveChannel('general');
     setIsAddModalOpen(false);
   };
 
@@ -161,6 +162,7 @@ export const ServerSidebar = () => {
     const serverId = link.split('/').pop() || link;
     if (servers.find(s => s.id === serverId)) {
        setActiveServer(serverId);
+       setActiveChannel('general');
        setIsAddModalOpen(false);
        return;
     }
@@ -180,6 +182,7 @@ export const ServerSidebar = () => {
       const newServer = { id: serverData.id, name: serverData.name, img: serverData.img, isOwner: false };
       setServers([...servers, newServer]);
       setActiveServer(serverId);
+      setActiveChannel('general');
       setIsAddModalOpen(false);
     } else {
       console.error('Server not found');
@@ -192,7 +195,10 @@ export const ServerSidebar = () => {
       <div className="relative group flex items-center justify-center w-full">
         <div className={`absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300 ${activeServer === '@me' ? 'h-10' : 'h-0 group-hover:h-5'}`}></div>
         <div 
-          onClick={() => setActiveServer('@me')}
+          onClick={() => {
+            setActiveServer('@me');
+            setActiveChannel('friends');
+          }}
           className={`relative w-12 h-12 rounded-[24px] hover:rounded-[16px] bg-[#7038fa] flex items-center justify-center cursor-pointer transition-all duration-300 shadow-[0_0_15px_rgba(112,56,250,0.5)] ${activeServer === '@me' ? 'rounded-[16px]' : ''}`}
         >
            <span className="font-bold text-white text-xl">O</span>
@@ -210,7 +216,10 @@ export const ServerSidebar = () => {
         <div key={server.id} className="relative group flex items-center justify-center w-full">
           <div className={`absolute left-0 w-1 bg-white rounded-r-full transition-all duration-300 ${activeServer === server.id ? 'h-10' : 'h-0 group-hover:h-5'}`}></div>
           <div 
-            onClick={() => setActiveServer(server.id)}
+            onClick={() => {
+              setActiveServer(server.id);
+              setActiveChannel('general');
+            }}
             className={`w-12 h-12 rounded-[24px] group-hover:rounded-[16px] bg-[#1A1B26] overflow-hidden cursor-pointer transition-all duration-300 flex items-center justify-center ${activeServer === server.id ? 'rounded-[16px] ring-2 ring-[#7038fa] ring-offset-2 ring-offset-[#0E0F15]' : ''}`}
           >
             {server.img ? (
@@ -248,6 +257,7 @@ export const Sidebar = () => {
 
   const handleLeaveServer = () => {
     setActiveServer('@me');
+    setActiveChannel('general');
   };
 
   return (
@@ -338,12 +348,18 @@ export const Sidebar = () => {
              <span className="w-3">▼</span> INFORMATION
           </div>
           <div className="space-y-0.5">
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26] cursor-pointer transition-colors group">
-              <Hash size={18} className="text-gray-500 group-hover:text-gray-400" />
+            <div 
+              onClick={() => setActiveChannel('announcements')}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === 'announcements' ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+            >
+              <Hash size={18} className={`${activeChannel === 'announcements' ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
               <span className="font-medium text-[15px]">announcements</span>
             </div>
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26] cursor-pointer transition-colors group">
-              <Hash size={18} className="text-gray-500 group-hover:text-gray-400" />
+            <div 
+              onClick={() => setActiveChannel('rules')}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === 'rules' ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+            >
+              <Hash size={18} className={`${activeChannel === 'rules' ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
               <span className="font-medium text-[15px]">rules</span>
             </div>
           </div>
