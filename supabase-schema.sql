@@ -49,3 +49,17 @@ CREATE TABLE IF NOT EXISTS server_members (
   joined_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()),
   PRIMARY KEY (server_id, user_id)
 );
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS username TEXT;
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS avatar TEXT;
+
+-- Create channels table
+CREATE TABLE IF NOT EXISTS channels (
+  id TEXT PRIMARY KEY,
+  server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'text',
+  category TEXT NOT NULL DEFAULT 'text',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW())
+);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE channels;
