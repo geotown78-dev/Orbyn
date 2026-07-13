@@ -18,7 +18,7 @@ export const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
 
-  const isDM = activeChannel.startsWith('dm_');
+  const isDM = activeServer === '@me' && activeChannel.startsWith('dm_');
   const dmTarget = isDM ? activeChannel.replace('dm_', '') : '';
   const actualChannelId = isDM && user ? [user.name, dmTarget].sort().join('_') : `${activeServer}_${activeChannel}`;
 
