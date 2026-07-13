@@ -2,6 +2,7 @@ import { Compass, Plus, Hash, Shield, Settings, UserPlus, LogOut, Trash2, Edit, 
 import { useState } from 'react';
 import { useApp } from '../AppContext';
 import { supabase } from '../lib/supabase';
+import { ServerSettingsModal } from './ServerSettingsModal';
 
 const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
   const [view, setView] = useState<'options' | 'create' | 'join'>('options');
@@ -243,6 +244,7 @@ export const Sidebar = () => {
   const { activeServer, activeChannel, setActiveChannel, servers, setActiveServer } = useApp();
   const currentServer = servers.find(s => s.id === activeServer);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleLeaveServer = () => {
     setActiveServer('@me');
@@ -270,7 +272,13 @@ export const Sidebar = () => {
                     <span>Invite People</span>
                     <UserPlus size={16} />
                   </div>
-                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                  <div 
+                    onClick={() => {
+                      setIsSettingsOpen(true);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors"
+                  >
                     <span>Server Settings</span>
                     <Settings size={16} />
                   </div>
@@ -284,7 +292,10 @@ export const Sidebar = () => {
                   </div>
                   <div className="h-[1px] bg-[#20212B] my-1 mx-2"></div>
                   <div 
-                    onClick={handleLeaveServer}
+                    onClick={() => {
+                      setIsSettingsOpen(true);
+                      setIsDropdownOpen(false);
+                    }}
                     className="flex items-center justify-between px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500 hover:text-white rounded cursor-pointer transition-colors"
                   >
                     <span>Delete Server</span>
@@ -309,6 +320,12 @@ export const Sidebar = () => {
               )}
             </div>
           )}
+          
+          <ServerSettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            server={currentServer}
+          />
         </div>
       )}
 
