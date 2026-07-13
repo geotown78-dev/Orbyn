@@ -1,8 +1,10 @@
-import { Compass, Plus, Hash, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X } from 'lucide-react';
-import { useState } from 'react';
+import { Compass, Plus, Hash, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X, Volume2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../AppContext';
 import { supabase } from '../lib/supabase';
 import { ServerSettingsModal } from './ServerSettingsModal';
+import { CreateChannelModal } from './CreateChannelModal';
+import { InviteModal } from './InviteModal';
 
 const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
   const [view, setView] = useState<'options' | 'create' | 'join'>('options');
@@ -150,6 +152,15 @@ export const ServerSidebar = () => {
       alert('Error adding member: ' + memberError.message);
       return;
     }
+    // Add default channels
+    const { error: channelsError } = await supabase.from('channels').insert([
+      { id: `text_${Date.now()}`, server_id: newId, name: 'general', type: 'text', category: 'text' },
+      { id: `text_${Date.now()+1}`, server_id: newId, name: 'gaming-talk', type: 'text', category: 'text' }
+    ]);
+    if (channelsError) {
+      console.log('Could not add default channels (table might not exist yet):', channelsError);
+    }
+
 
     setServers([...servers, { ...newServer, isOwner: true }]);
     setActiveServer(newId);
@@ -254,11 +265,39 @@ export const Sidebar = () => {
   const currentServer = servers.find(s => s.id === activeServer);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [channels, setChannels] = useState<any[]>([]);
+  const [hasChannelsTable, setHasChannelsTable] = useState(true);
+
+  useEffect(() => {
+    if (activeServer !== '@me') {
+      const fetchChannels = async () => {
+        const { data, error } = await supabase.from('channels').select('*').eq('server_id', activeServer);
+        if (error) {
+          console.log('Channels table not found or error:', error);
+          setHasChannelsTable(false);
+        } else if (data) {
+          setHasChannelsTable(true);
+          setChannels(data);
+        }
+      };
+      fetchChannels();
+
+      const sub = supabase.channel('public:channels')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'channels', filter: `server_id=eq.${activeServer}` }, fetchChannels)
+        .subscribe();
+      return () => { supabase.removeChannel(sub); };
+    }
+  }, [activeServer]);
 
   const handleLeaveServer = () => {
     setActiveServer('@me');
     setActiveChannel('general');
   };
+
+  const textChannels = hasChannelsTable ? channels.filter(c => c.type === 'text') : [{ name: 'general', type: 'text' }, { name: 'gaming-talk', type: 'text' }, { name: 'memes', type: 'text' }, { name: 'lfg', type: 'text' }];
+  const voiceChannels = hasChannelsTable ? channels.filter(c => c.type === 'voice') : [];
 
   return (
     <div className="w-[240px] bg-[#111218] flex flex-col shrink-0 border-r border-[#20212B]">
@@ -292,7 +331,13 @@ export const Sidebar = () => {
                     <span>Server Settings</span>
                     <Settings size={16} />
                   </div>
-                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                  <div 
+                    onClick={() => {
+                      setIsCreateChannelOpen(true);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors"
+                  >
                     <span>Create Channel</span>
                     <Plus size={16} />
                   </div>
@@ -336,6 +381,18 @@ export const Sidebar = () => {
             onClose={() => setIsSettingsOpen(false)}
             server={currentServer}
           />
+
+          <CreateChannelModal
+            isOpen={isCreateChannelOpen}
+            onClose={() => setIsCreateChannelOpen(false)}
+            serverId={currentServer.id}
+          />
+
+          <InviteModal
+            isOpen={isInviteOpen}
+            onClose={() => setIsInviteOpen(false)}
+            serverId={currentServer.id}
+          />
         </div>
       )}
 
@@ -343,44 +400,48 @@ export const Sidebar = () => {
       {activeServer !== '@me' && (
         <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-6">
         {/* Info Channels */}
-        <div>
-          <div className="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer">
-             <span className="w-3">▼</span> INFORMATION
-          </div>
-          <div className="space-y-0.5">
-            <div 
-              onClick={() => setActiveChannel('announcements')}
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === 'announcements' ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
-            >
-              <Hash size={18} className={`${activeChannel === 'announcements' ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
-              <span className="font-medium text-[15px]">announcements</span>
+        {!hasChannelsTable && (
+          <div>
+            <div className="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer">
+               <span className="w-3">▼</span> INFORMATION
             </div>
-            <div 
-              onClick={() => setActiveChannel('rules')}
-              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === 'rules' ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
-            >
-              <Hash size={18} className={`${activeChannel === 'rules' ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
-              <span className="font-medium text-[15px]">rules</span>
+            <div className="space-y-0.5">
+              <div 
+                onClick={() => setActiveChannel('announcements')}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === 'announcements' ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+              >
+                <Hash size={18} className={`${activeChannel === 'announcements' ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                <span className="font-medium text-[15px]">announcements</span>
+              </div>
+              <div 
+                onClick={() => setActiveChannel('rules')}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === 'rules' ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+              >
+                <Hash size={18} className={`${activeChannel === 'rules' ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                <span className="font-medium text-[15px]">rules</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Text Channels */}
         <div>
           <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer group">
              <div className="flex items-center gap-1"><span className="w-3">▼</span> TEXT CHANNELS</div>
-             <Plus size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+             {currentServer?.isOwner && (
+               <Plus size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setIsCreateChannelOpen(true)} />
+             )}
           </div>
           <div className="space-y-0.5">
-            {['general', 'gaming-talk', 'memes', 'lfg'].map((channel) => (
+            {textChannels.map((channel: any) => (
               <div 
-                key={channel}
-                onClick={() => setActiveChannel(channel)}
-                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === channel ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+                key={channel.id || channel.name}
+                onClick={() => setActiveChannel(channel.name)}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === channel.name ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
               >
-                <Hash size={18} className={`${activeChannel === channel ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
-                <span className="font-medium text-[15px]">{channel}</span>
-                {activeChannel !== channel && channel === 'memes' && (
+                <Hash size={18} className={`${activeChannel === channel.name ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                <span className="font-medium text-[15px]">{channel.name}</span>
+                {activeChannel !== channel.name && channel.name === 'memes' && (
                   <div className="absolute right-2 w-2 h-2 bg-white rounded-full"></div>
                 )}
               </div>
@@ -388,7 +449,29 @@ export const Sidebar = () => {
           </div>
         </div>
 
-
+        {/* Voice Channels */}
+        {(hasChannelsTable && voiceChannels.length > 0) && (
+          <div>
+            <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer group">
+               <div className="flex items-center gap-1"><span className="w-3">▼</span> VOICE CHANNELS</div>
+               {currentServer?.isOwner && (
+                 <Plus size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setIsCreateChannelOpen(true)} />
+               )}
+            </div>
+            <div className="space-y-0.5">
+              {voiceChannels.map((channel: any) => (
+                <div 
+                  key={channel.id}
+                  onClick={() => setActiveChannel(channel.name)}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === channel.name ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+                >
+                  <Volume2 size={18} className={`${activeChannel === channel.name ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                  <span className="font-medium text-[15px]">{channel.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         </div>
       )}
