@@ -61,8 +61,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         active_server: activeServer,
         active_channel: activeChannel,
         updated_at: new Date().toISOString()
-      }).then(({ error }) => {
-        if (error && error.code !== '42P01') console.error("Error saving settings to Supabase:", error);
+      }).select().single().then(({ error }) => {
+        if (error && error.code !== '42P01') {
+          console.error("Error saving settings to Supabase:", error);
+        }
       });
     }
   }, [activeChannel, activeServer, servers, user, isDataLoaded]);
@@ -128,17 +130,27 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setActiveChannel(data.active_channel);
       }
       
-      const { data: memberData } = await supabase
+      const { data: memberData, error: memberError } = await supabase
         .from('server_members')
         .select('server_id, role')
         .eq('user_id', userId);
         
+      if (memberError) {
+        console.error('Fetch members error:', memberError);
+        alert('Fetch members error: ' + memberError.message);
+      }
+        
       if (memberData && memberData.length > 0) {
         const serverIds = memberData.map((m: any) => m.server_id);
-        const { data: serversData } = await supabase
+        const { data: serversData, error: serversError } = await supabase
           .from('servers')
           .select('*')
           .in('id', serverIds);
+
+        if (serversError) {
+          console.error('Fetch servers error:', serversError);
+          alert('Fetch servers error: ' + serversError.message);
+        }
 
         if (serversData) {
           const dbServers = serversData.map((s: any) => {
