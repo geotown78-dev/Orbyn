@@ -130,17 +130,30 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       
       const { data: memberData } = await supabase
         .from('server_members')
-        .select('role, servers(*)')
+        .select('server_id, role')
         .eq('user_id', userId);
         
-      if (memberData) {
-        const dbServers = memberData.map((m: any) => ({
-          id: m.servers.id,
-          name: m.servers.name,
-          img: m.servers.img,
-          isOwner: m.role === 'owner'
-        }));
-        setServers(dbServers);
+      if (memberData && memberData.length > 0) {
+        const serverIds = memberData.map((m: any) => m.server_id);
+        const { data: serversData } = await supabase
+          .from('servers')
+          .select('*')
+          .in('id', serverIds);
+
+        if (serversData) {
+          const dbServers = serversData.map((s: any) => {
+            const member = memberData.find((m: any) => m.server_id === s.id);
+            return {
+              id: s.id,
+              name: s.name,
+              img: s.img,
+              isOwner: member?.role === 'owner'
+            };
+          });
+          setServers(dbServers);
+        }
+      } else if (memberData && memberData.length === 0) {
+        setServers([]);
       }
       
       setIsDataLoaded(true);
