@@ -1,5 +1,5 @@
-import { Compass, Plus, Hash, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X, Volume2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Compass, Plus, Hash, Shield, Settings, UserPlus, LogOut, Trash2, Edit, X, Volume2, MicOff } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../AppContext';
 import { supabase } from '../lib/supabase';
 import { ServerSettingsModal } from './ServerSettingsModal';
@@ -267,12 +267,65 @@ export const ServerSidebar = () => {
 };
 
 export const Sidebar = () => {
-  const { activeServer, activeChannel, setActiveChannel, activeVoiceChannel, setActiveVoiceChannel, servers, setActiveServer } = useApp();
+  const { activeServer, activeChannel, setActiveChannel, activeVoiceChannel, setActiveVoiceChannel, servers, setActiveServer, user, isMuted } = useApp();
   const currentServer = servers.find(s => s.id === activeServer);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
+  const [voiceStates, setVoiceStates] = useState<Record<string, any[]>>({});
+  const presenceChannelRef = useRef<any>(null);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+
+
+  useEffect(() => {
+    if (activeServer !== '@me' && user) {
+      const channel = supabase.channel(`server_presence:${activeServer}`, {
+        config: { presence: { key: user.id } }
+      });
+      presenceChannelRef.current = channel;
+
+      channel.on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const newVoiceStates: Record<string, any[]> = {};
+        Object.values(state).forEach((presences: any) => {
+          const p = presences[0];
+          if (p && p.voiceChannel) {
+             if (!newVoiceStates[p.voiceChannel]) newVoiceStates[p.voiceChannel] = [];
+             newVoiceStates[p.voiceChannel].push(p);
+          }
+        });
+        setVoiceStates(newVoiceStates);
+      }).subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            user_id: user.id,
+            user_name: user.name,
+            avatar: user.avatar,
+            voiceChannel: activeVoiceChannel,
+            isMuted: isMuted
+          });
+        }
+      });
+
+      return () => {
+        supabase.removeChannel(channel);
+        presenceChannelRef.current = null;
+      };
+    }
+  }, [activeServer, user]);
+
+  useEffect(() => {
+    if (presenceChannelRef.current && presenceChannelRef.current.state === 'joined' && user) {
+       presenceChannelRef.current.track({
+         user_id: user.id,
+         user_name: user.name,
+         avatar: user.avatar,
+         voiceChannel: activeVoiceChannel,
+         isMuted: isMuted
+       });
+    }
+  }, [activeVoiceChannel, isMuted, user]);
+
   const [channels, setChannels] = useState<any[]>([]);
   const [hasChannelsTable, setHasChannelsTable] = useState(true);
 
@@ -488,13 +541,27 @@ export const Sidebar = () => {
             </div>
             <div className="space-y-0.5">
               {voiceChannels.map((channel: any) => (
-                <div 
-                  key={channel.id}
-                  onClick={() => setActiveVoiceChannel(channel.name)}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeVoiceChannel === channel.name ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
-                >
-                  <Volume2 size={18} className={`${activeVoiceChannel === channel.name ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
-                  <span className="font-medium text-[15px]">{channel.name}</span>
+                <div key={channel.id}>
+                  <div 
+                    onClick={() => setActiveVoiceChannel(channel.name)}
+                    className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeVoiceChannel === channel.name ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+                  >
+                    <Volume2 size={18} className={`${activeVoiceChannel === channel.name ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                    <span className="font-medium text-[15px]">{channel.name}</span>
+                  </div>
+                  {voiceStates[channel.name] && voiceStates[channel.name].length > 0 && (
+                    <div className="pl-8 pr-2 py-1 space-y-1">
+                       {voiceStates[channel.name].map((u: any) => (
+                          <div key={u.user_id} className="flex items-center justify-between group/user">
+                             <div className="flex items-center gap-2">
+                                <img src={u.avatar} className="w-6 h-6 rounded-full bg-[#13141C]" alt="" />
+                                <span className="text-gray-400 font-medium text-[14px] group-hover/user:text-gray-300 truncate max-w-[120px]">{u.user_name}</span>
+                             </div>
+                             {u.isMuted && <MicOff size={14} className="text-red-400" />}
+                          </div>
+                       ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
