@@ -27,6 +27,8 @@ type AppContextType = {
   isSettingsOpen: boolean;
   setSettingsOpen: (val: boolean) => void;
   activeChannel: string;
+  activeVoiceChannel: string | null;
+  setActiveVoiceChannel: (val: string | null) => void;
   setActiveChannel: (val: string) => void;
   activeServer: string;
   setActiveServer: (val: string) => void;
@@ -43,6 +45,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isSettingsOpen, setSettingsOpen] = useState(false);
   const [activeChannel, setActiveChannel] = useState('general');
+  const [activeVoiceChannel, setActiveVoiceChannel] = useState<string | null>(null);
   const [activeServer, setActiveServer] = useState('@me');
   const [user, setUser] = useState<User | null>(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -212,6 +215,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated, setIsAuthenticated,
       isSettingsOpen, setSettingsOpen,
       activeChannel, setActiveChannel,
+      activeVoiceChannel, setActiveVoiceChannel,
       activeServer, setActiveServer,
       user,
       servers, setServers,
