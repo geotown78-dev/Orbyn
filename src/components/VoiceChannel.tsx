@@ -162,7 +162,17 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
       }
 
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        iceServers: [
+          // Google-ის საჯარო STUN სერვერი
+          { urls: 'stun:stun.l.google.com:19302' },
+          
+          // შენი TURN სერვერი (აქ უნდა შეცვალო მონაცემები)
+          {
+            urls: 'turn:5.83.153.142:3478', 
+            username: 'giorgichedia',
+            credential: 'giorgiqiso23'
+          }
+        ]
       });
       peerConnections.current.set(targetId, pc);
 
