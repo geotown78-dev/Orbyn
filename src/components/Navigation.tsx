@@ -328,7 +328,12 @@ export const Sidebar = () => {
             <div className="absolute top-[65px] left-2 right-2 bg-[#111218] rounded-lg shadow-2xl border border-[#20212B] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
               {currentServer.isOwner ? (
                 <>
-                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-[#7038fa] hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors group">
+                  <div 
+                    onClick={() => {
+                      setIsInviteOpen(true);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-[#7038fa] hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors group">
                     <span>Invite People</span>
                     <UserPlus size={16} />
                   </div>
@@ -376,7 +381,12 @@ export const Sidebar = () => {
                 </>
               ) : (
                 <>
-                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-[#7038fa] hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                  <div 
+                    onClick={() => {
+                      setIsInviteOpen(true);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-[#7038fa] hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
                     <span>Invite Friends</span>
                     <UserPlus size={16} />
                   </div>
