@@ -18,9 +18,9 @@ export const HomeSidebar = () => {
       <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-4">
         <div 
           onClick={() => setActiveChannel('friends')}
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors ${!activeChannel.startsWith('dm_') ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:bg-[#1A1B26] hover:text-gray-300'}`}
+          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-colors ${!(activeChannel || '').startsWith('dm_') ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:bg-[#1A1B26] hover:text-gray-300'}`}
         >
-          <Users size={20} className={!activeChannel.startsWith('dm_') ? 'text-gray-300' : 'text-gray-500'} />
+          <Users size={20} className={!(activeChannel || '').startsWith('dm_') ? 'text-gray-300' : 'text-gray-500'} />
           <span className="font-medium text-[15px]">Friends</span>
         </div>
         <div className="mt-4">
