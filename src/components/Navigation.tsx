@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { ServerSettingsModal } from './ServerSettingsModal';
 import { CreateChannelModal } from './CreateChannelModal';
 import { InviteModal } from './InviteModal';
+import { VoiceChannel } from './VoiceChannel';
 
 const AddServerModal = ({ isOpen, onClose, onCreate, onJoin }: any) => {
   const [view, setView] = useState<'options' | 'create' | 'join'>('options');
@@ -154,8 +155,13 @@ export const ServerSidebar = () => {
     }
     // Add default channels
     const { error: channelsError } = await supabase.from('channels').insert([
-      { id: `text_${Date.now()}`, server_id: newId, name: 'general', type: 'text', category: 'text' },
-      { id: `text_${Date.now()+1}`, server_id: newId, name: 'gaming-talk', type: 'text', category: 'text' }
+      { id: `text_${Date.now()}`, server_id: newId, name: 'announcements', type: 'text', category: 'info' },
+      { id: `text_${Date.now()+1}`, server_id: newId, name: 'rules', type: 'text', category: 'info' },
+      { id: `text_${Date.now()+2}`, server_id: newId, name: 'general', type: 'text', category: 'text' },
+      { id: `text_${Date.now()+3}`, server_id: newId, name: 'gaming-talk', type: 'text', category: 'text' },
+      { id: `text_${Date.now()+4}`, server_id: newId, name: 'memes', type: 'text', category: 'text' },
+      { id: `text_${Date.now()+5}`, server_id: newId, name: 'lfg', type: 'text', category: 'text' },
+      { id: `voice_${Date.now()+6}`, server_id: newId, name: 'General', type: 'voice', category: 'voice' }
     ]);
     if (channelsError) {
       console.log('Could not add default channels (table might not exist yet):', channelsError);
@@ -296,8 +302,13 @@ export const Sidebar = () => {
     setActiveChannel('general');
   };
 
-  const textChannels = hasChannelsTable ? channels.filter(c => c.type === 'text') : [{ name: 'general', type: 'text' }, { name: 'gaming-talk', type: 'text' }, { name: 'memes', type: 'text' }, { name: 'lfg', type: 'text' }];
-  const voiceChannels = hasChannelsTable ? channels.filter(c => c.type === 'voice') : [];
+  const infoChannelsFromDb = channels.filter(c => c.category === 'info');
+  const textChannelsFromDb = channels.filter(c => c.type === 'text' && c.category !== 'info');
+  const voiceChannelsFromDb = channels.filter(c => c.type === 'voice');
+
+  const infoChannels = infoChannelsFromDb.length > 0 ? infoChannelsFromDb : [{name: 'announcements', type: 'text'}, {name: 'rules', type: 'text'}];
+  const textChannels = textChannelsFromDb.length > 0 ? textChannelsFromDb : [{ name: 'general', type: 'text' }, { name: 'gaming-talk', type: 'text' }, { name: 'memes', type: 'text' }, { name: 'lfg', type: 'text' }];
+  const voiceChannels = voiceChannelsFromDb.length > 0 ? voiceChannelsFromDb : [{ name: 'General', type: 'voice' }];
 
   return (
     <div className="w-[240px] bg-[#111218] flex flex-col shrink-0 border-r border-[#20212B]">
@@ -382,6 +393,7 @@ export const Sidebar = () => {
             </div>
           )}
           
+          {activeVoiceChannel && <VoiceChannel channelId={activeVoiceChannel} channelName={activeVoiceChannel} />}
           <ServerSettingsModal
             isOpen={isSettingsOpen}
             onClose={() => setIsSettingsOpen(false)}
@@ -406,7 +418,7 @@ export const Sidebar = () => {
       {activeServer !== '@me' && (
         <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-6">
         {/* Info Channels */}
-        {!hasChannelsTable && (
+        {(infoChannels.length > 0 || !hasChannelsTable) && (
           <div>
             <div className="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer">
                <span className="w-3">▼</span> INFORMATION
