@@ -17,20 +17,6 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
     
     let isMounted = true;
     
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-      .then(stream => {
-        if (!isMounted) {
-          stream.getTracks().forEach(t => t.stop());
-          return;
-        }
-        localStream.current = stream;
-        startSignaling();
-      })
-      .catch(err => {
-        console.error("Mic error", err);
-        startSignaling(); // Still connect to see others even without mic
-      });
-
     const startSignaling = () => {
       const room = supabase.channel(`voice:${activeServer}:${channelId}`, {
         config: {
@@ -43,10 +29,10 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
       room
         .on('presence', { event: 'sync' }, () => {
           const state = room.presenceState();
-          const usersInRoom = Object.values(state).map((p: any) => p[0]);
+          const usersInRoom = Object.values(state).map((p: any) => p[0]).filter(Boolean);
           
           setPeers(currentPeers => {
-             return usersInRoom.map(u => {
+             return usersInRoom.map((u: any) => {
                 const existing = currentPeers.find(p => p.id === u.user_id);
                 return {
                    id: u.user_id,
@@ -109,6 +95,25 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
           }
         });
     };
+
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+        .then(stream => {
+          if (!isMounted) {
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
+          localStream.current = stream;
+          startSignaling();
+        })
+        .catch(err => {
+          console.error("Mic error", err);
+          startSignaling(); // Still connect to see others even without mic
+        });
+    } else {
+      console.warn("navigator.mediaDevices.getUserMedia is not supported in this environment");
+      startSignaling();
+    }
 
     const createPeerConnection = (targetId: string) => {
       if (peerConnections.current.has(targetId)) {
