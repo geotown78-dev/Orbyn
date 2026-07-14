@@ -267,7 +267,7 @@ export const ServerSidebar = () => {
 };
 
 export const Sidebar = () => {
-  const { activeServer, activeChannel, setActiveChannel, servers, setActiveServer } = useApp();
+  const { activeServer, activeChannel, setActiveChannel, activeVoiceChannel, setActiveVoiceChannel, servers, setActiveServer } = useApp();
   const currentServer = servers.find(s => s.id === activeServer);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -480,10 +480,10 @@ export const Sidebar = () => {
               {voiceChannels.map((channel: any) => (
                 <div 
                   key={channel.id}
-                  onClick={() => setActiveChannel(channel.name)}
-                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === channel.name ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+                  onClick={() => setActiveVoiceChannel(channel.name)}
+                  className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeVoiceChannel === channel.name ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
                 >
-                  <Volume2 size={18} className={`${activeChannel === channel.name ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                  <Volume2 size={18} className={`${activeVoiceChannel === channel.name ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
                   <span className="font-medium text-[15px]">{channel.name}</span>
                 </div>
               ))}
