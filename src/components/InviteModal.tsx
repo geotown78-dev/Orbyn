@@ -37,10 +37,20 @@ export const InviteModal = ({ isOpen, onClose, serverId }: Props) => {
     
     setInvitedMap(prev => ({ ...prev, [friendId]: true }));
     
-    // Add friend to server directly
-    await supabase.from('server_members').insert([
-      { server_id: serverId, user_id: friendId, role: 'member' }
-    ]);
+    // Send them a DM with the invite link
+    const friend = friends.find(f => f.id === friendId);
+    if (!friend) return;
+
+    const dmChannelId = [user.name, friend.username].sort().join('_');
+    
+    await supabase.from('messages').insert([{
+      id: Date.now().toString(),
+      user_name: user.name,
+      user_avatar: user.avatar,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      content: inviteLink,
+      channel_id: dmChannelId
+    }]);
   };
 
   const filteredFriends = friends.filter(f => f.username.toLowerCase().includes(searchQuery.toLowerCase()));
