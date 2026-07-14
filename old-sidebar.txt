@@ -1,0 +1,146 @@
+export const Sidebar = () => {
+  const { activeServer, activeChannel, setActiveChannel, servers, setActiveServer } = useApp();
+  const currentServer = servers.find(s => s.id === activeServer);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  const handleLeaveServer = () => {
+    setActiveServer('@me');
+    setActiveChannel('general');
+  };
+
+  return (
+    <div className="w-[240px] bg-[#111218] flex flex-col shrink-0 border-r border-[#20212B]">
+      {/* Server Header */}
+      {currentServer && (
+        <div className="relative">
+          <div 
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className={`h-[60px] border-b border-[#20212B] flex items-center px-4 justify-between cursor-pointer transition-colors ${isDropdownOpen ? 'bg-[#1A1B26]' : 'hover:bg-[#1A1B26]'}`}
+          >
+            <h1 className="font-extrabold text-white text-[17px] tracking-wide">{currentServer.name}</h1>
+            {currentServer.isOwner && <Shield size={18} className="text-[#7038fa]" />}
+          </div>
+          
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <div className="absolute top-[65px] left-2 right-2 bg-[#111218] rounded-lg shadow-2xl border border-[#20212B] p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+              {currentServer.isOwner ? (
+                <>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-[#7038fa] hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors group">
+                    <span>Invite People</span>
+                    <UserPlus size={16} />
+                  </div>
+                  <div 
+                    onClick={() => {
+                      setIsSettingsOpen(true);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors"
+                  >
+                    <span>Server Settings</span>
+                    <Settings size={16} />
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                    <span>Create Channel</span>
+                    <Plus size={16} />
+                  </div>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-300 hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                    <span>Edit Server Profile</span>
+                    <Edit size={16} />
+                  </div>
+                  <div className="h-[1px] bg-[#20212B] my-1 mx-2"></div>
+                  <div 
+                    onClick={() => {
+                      setIsSettingsOpen(true);
+                      setIsDropdownOpen(false);
+                    }}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500 hover:text-white rounded cursor-pointer transition-colors"
+                  >
+                    <span>Delete Server</span>
+                    <Trash2 size={16} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between px-3 py-2 text-sm font-medium text-[#7038fa] hover:bg-[#7038fa] hover:text-white rounded cursor-pointer transition-colors">
+                    <span>Invite Friends</span>
+                    <UserPlus size={16} />
+                  </div>
+                  <div className="h-[1px] bg-[#20212B] my-1 mx-2"></div>
+                  <div 
+                    onClick={handleLeaveServer}
+                    className="flex items-center justify-between px-3 py-2 text-sm font-medium text-red-400 hover:bg-red-500 hover:text-white rounded cursor-pointer transition-colors"
+                  >
+                    <span>Leave Server</span>
+                    <LogOut size={16} />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          
+          <ServerSettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            server={currentServer}
+          />
+        </div>
+      )}
+
+      {/* When @me is selected, we could show Direct Messages list here, but currently it just shows empty state or GameHub channels. To avoid breaking things, we'll keep the channel list below for servers. */}
+      {activeServer !== '@me' && (
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-6">
+        {/* Info Channels */}
+        <div>
+          <div className="flex items-center gap-1 text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer">
+             <span className="w-3">▼</span> INFORMATION
+          </div>
+          <div className="space-y-0.5">
+            <div 
+              onClick={() => setActiveChannel('announcements')}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === 'announcements' ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+            >
+              <Hash size={18} className={`${activeChannel === 'announcements' ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+              <span className="font-medium text-[15px]">announcements</span>
+            </div>
+            <div 
+              onClick={() => setActiveChannel('rules')}
+              className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === 'rules' ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+            >
+              <Hash size={18} className={`${activeChannel === 'rules' ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+              <span className="font-medium text-[15px]">rules</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Text Channels */}
+        <div>
+          <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 px-1 hover:text-gray-300 cursor-pointer group">
+             <div className="flex items-center gap-1"><span className="w-3">▼</span> TEXT CHANNELS</div>
+             <Plus size={14} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+          <div className="space-y-0.5">
+            {['general', 'gaming-talk', 'memes', 'lfg'].map((channel) => (
+              <div 
+                key={channel}
+                onClick={() => setActiveChannel(channel)}
+                className={`flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors group relative ${activeChannel === channel ? 'bg-[#20212B] text-white' : 'text-gray-400 hover:text-gray-300 hover:bg-[#1A1B26]'}`}
+              >
+                <Hash size={18} className={`${activeChannel === channel ? 'text-gray-300' : 'text-gray-500 group-hover:text-gray-400'}`} />
+                <span className="font-medium text-[15px]">{channel}</span>
+                {activeChannel !== channel && channel === 'memes' && (
+                  <div className="absolute right-2 w-2 h-2 bg-white rounded-full"></div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+
+
+        </div>
+      )}
+    </div>
+  );
+};

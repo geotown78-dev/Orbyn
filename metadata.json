@@ -1,0 +1,10 @@
+{
+  "name": "Orbyn Voice",
+  "description": "Discord clone with Voice Channels",
+  "requestFramePermissions": [
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
