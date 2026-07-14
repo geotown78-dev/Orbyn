@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useApp } from './AppContext';
 import { ServerSidebar, Sidebar } from './components/Navigation';
 import { Chat } from './components/Chat';
-import { supabase } from './lib/supabase';
+
 import { RightPanel } from './components/RightPanel';
 import { SettingsModal } from './components/SettingsModal';
 import { Auth } from './components/Auth';
@@ -62,7 +62,7 @@ export const App = () => {
         {activeServer === '@me' ? (
           <>
             <HomeSidebar />
-            {activeChannel.startsWith('dm_') ? (
+            {(activeChannel || '').startsWith('dm_') ? (
                <Chat />
             ) : (
                <>
