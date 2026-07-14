@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Hash, Plus, Gift, Smile, AtSign } from 'lucide-react';
 import { useApp } from '../AppContext';
 import { supabase } from '../lib/supabase';
+import { ServerInviteCard } from './ServerInviteCard';
 
 type Message = {
   id: string;
@@ -114,7 +115,20 @@ export const Chat = () => {
                 )}
                 <span className="text-xs text-gray-500 font-medium ml-1">{msg.time}</span>
               </div>
-              <p className="text-gray-300 text-[15px] leading-relaxed mb-3">{msg.content}</p>
+              {(() => {
+                const isInvite = msg.content.startsWith(window.location.origin + '/server_');
+                const serverId = isInvite ? msg.content.split('/').pop() : null;
+                return (
+                  <>
+                    <p className="text-gray-300 text-[15px] leading-relaxed mb-1">
+                      {isInvite ? 'Sent an invite to join a server.' : msg.content}
+                    </p>
+                    {isInvite && serverId && (
+                      <ServerInviteCard serverId={serverId} />
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         ))}
