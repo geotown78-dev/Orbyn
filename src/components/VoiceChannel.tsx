@@ -4,12 +4,12 @@ import { supabase } from '../lib/supabase';
 import { PhoneOff, Mic, MicOff, Signal } from 'lucide-react';
 
 export const VoiceChannel = ({ channelId, channelName }: { channelId: string, channelName: string }) => {
-  const { user, activeServer, setActiveVoiceChannel } = useApp();
+  const { user, activeServer, setActiveVoiceChannel, isMuted, setIsMuted } = useApp();
   const [peers, setPeers] = useState<{ id: string, name: string, avatar: string, isMuted: boolean, stream: MediaStream | null }[]>([]);
-  const [isMuted, setIsMuted] = useState(false);
   const localStream = useRef<MediaStream | null>(null);
   
   const peerConnections = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const candidateQueue = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const channelRef = useRef<any>(null);
 
   useEffect(() => {
@@ -30,8 +30,21 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
         .on('presence', { event: 'sync' }, () => {
           const state = room.presenceState();
           const usersInRoom = Object.values(state).map((p: any) => p[0]).filter(Boolean);
+          const currentIds = usersInRoom.map((u: any) => u.user_id);
           
           setPeers(currentPeers => {
+             // Cleanup connections for users who left
+             currentPeers.forEach(p => {
+                if (!currentIds.includes(p.id)) {
+                   const pc = peerConnections.current.get(p.id);
+                   if (pc) {
+                      pc.close();
+                      peerConnections.current.delete(p.id);
+                      candidateQueue.current.delete(p.id);
+                   }
+                }
+             });
+             
              return usersInRoom.map((u: any) => {
                 const existing = currentPeers.find(p => p.id === u.user_id);
                 return {
@@ -62,6 +75,16 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
             await pc.setRemoteDescription(new RTCSessionDescription(payload.offer));
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
+            
+            // Process queued candidates
+            const queue = candidateQueue.current.get(payload.senderId);
+            if (queue) {
+               for (const c of queue) {
+                  await pc.addIceCandidate(new RTCIceCandidate(c)).catch(e => console.log('Ice add error', e));
+               }
+               candidateQueue.current.delete(payload.senderId);
+            }
+
             room.send({
               type: 'broadcast',
               event: 'signal',
@@ -71,11 +94,25 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
             const pc = peerConnections.current.get(payload.senderId);
             if (pc) {
               await pc.setRemoteDescription(new RTCSessionDescription(payload.answer));
+              // Process queued candidates
+              const queue = candidateQueue.current.get(payload.senderId);
+              if (queue) {
+                 for (const c of queue) {
+                    await pc.addIceCandidate(new RTCIceCandidate(c)).catch(e => console.log('Ice add error', e));
+                 }
+                 candidateQueue.current.delete(payload.senderId);
+              }
             }
           } else if (payload.type === 'ice-candidate') {
             const pc = peerConnections.current.get(payload.senderId);
             if (pc && payload.candidate) {
-              await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(e => console.log('Ice add error', e));
+              if (pc.remoteDescription) {
+                 await pc.addIceCandidate(new RTCIceCandidate(payload.candidate)).catch(e => console.log('Ice add error', e));
+              } else {
+                 const queue = candidateQueue.current.get(payload.senderId) || [];
+                 queue.push(payload.candidate);
+                 candidateQueue.current.set(payload.senderId, queue);
+              }
             }
           }
         })
@@ -104,6 +141,10 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
             return;
           }
           localStream.current = stream;
+          // Apply initial mute state
+          stream.getAudioTracks().forEach(track => {
+             track.enabled = !isMuted;
+          });
           startSignaling();
         })
         .catch(err => {
@@ -123,7 +164,6 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
       const pc = new RTCPeerConnection({
         iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
       });
-
       peerConnections.current.set(targetId, pc);
 
       if (localStream.current) {
@@ -167,22 +207,24 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
     };
   }, [activeServer, channelId, user]);
 
+  useEffect(() => {
+     if (localStream.current) {
+        localStream.current.getAudioTracks().forEach(track => {
+           track.enabled = !isMuted;
+        });
+     }
+     if (channelRef.current && user && channelRef.current.state === 'joined') {
+        channelRef.current.track({
+          user_id: user.id,
+          user_name: user.name,
+          avatar: user.avatar,
+          isMuted: isMuted
+        });
+     }
+  }, [isMuted, user]);
+
   const toggleMute = () => {
-    const nextMute = !isMuted;
-    setIsMuted(nextMute);
-    if (localStream.current) {
-      localStream.current.getAudioTracks().forEach(track => {
-        track.enabled = !nextMute;
-      });
-    }
-    if (channelRef.current && user) {
-      channelRef.current.track({
-        user_id: user.id,
-        user_name: user.name,
-        avatar: user.avatar,
-        isMuted: nextMute
-      });
-    }
+    setIsMuted(!isMuted);
   };
 
   const handleDisconnect = () => {
@@ -227,12 +269,10 @@ export const VoiceChannel = ({ channelId, channelName }: { channelId: string, ch
 
 const AudioPlayer = ({ stream }: { stream: MediaStream }) => {
   const audioRef = useRef<HTMLAudioElement>(null);
-
   useEffect(() => {
     if (audioRef.current && stream) {
       audioRef.current.srcObject = stream;
     }
   }, [stream]);
-
   return <audio ref={audioRef} autoPlay playsInline className="hidden" />;
 };
