@@ -1,9 +1,71 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #059669;
+  --color-primary-hover: #047857;
+  --color-primary-light: #ECFDF5;
+  --color-dark: #0F172A;
+  --color-muted: #64748B;
+  --font-sans: 'Noto Sans Georgian', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Plus Jakarta Sans', Roboto, sans-serif;
+}
 
 @layer base {
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    font-family: var(--font-sans);
+    font-size: 18px;
+    letter-spacing: -0.012em;
+  }
   body {
-    @apply bg-[#0E0F15] text-white;
+    @apply bg-[#F6FAF7] text-slate-900 antialiased selection:bg-emerald-500/20 selection:text-emerald-900;
+    touch-action: manipulation;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    line-height: 1.6;
+  }
+  /* Prevent iOS zoom on focus while maintaining clean, legible typography */
+  input, select, textarea, button {
+    font-family: var(--font-sans);
+  }
+  input, select, textarea {
+    font-size: 18px;
+  }
+  @media (min-width: 640px) {
+    input, select, textarea {
+      font-size: 15px;
+    }
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .safe-pt {
+    padding-top: max(env(safe-area-inset-top, 0px), 0.5rem);
+  }
+  .safe-pb {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.5rem);
+  }
+  .safe-h {
+    height: 100dvh;
+  }
+  .glass-header {
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 }
