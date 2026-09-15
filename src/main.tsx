@@ -1,14 +1,26 @@
-import React from "react";
-
-import ReactDOM from 'react-dom/client';
-import { App } from './App';
+import {StrictMode} from 'react';
+import {createRoot} from 'react-dom/client';
+import '@fontsource/noto-sans-georgian/400.css';
+import '@fontsource/noto-sans-georgian/600.css';
+import '@fontsource/noto-sans-georgian/700.css';
+import '@fontsource/noto-sans-georgian/900.css';
+import App from './App.tsx';
 import './index.css';
-import { AppProvider } from './AppContext';
+import { AuthProvider } from './contexts/AuthContext';
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <AppProvider>
+// Register service worker in production / installed builds
+if ('serviceWorker' in navigator && !import.meta.env.DEV) {
+  import('virtual:pwa-register')
+    .then(({ registerSW }) => {
+      registerSW({ immediate: true });
+    })
+    .catch(() => {});
+}
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <AuthProvider>
       <App />
-    </AppProvider>
-  </React.StrictMode>,
+    </AuthProvider>
+  </StrictMode>,
 );
